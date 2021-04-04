@@ -7,11 +7,13 @@ WORKDIR /app
 USER deno
 
 COPY src/app-config.ts src/
-COPY src/deps src/
-COPY src/models src/
-COPY src/models src/
-COPY ${SRC_PATH} ${SRC_PATH}}
+COPY src/deps src/deps
+COPY src/models src/models
+COPY src/utils src/utils
+COPY ${SRC_PATH} ${SRC_PATH}
 
-RUN deno cache "${SRC_PATH}/cli.ts"
+WORKDIR /app/${SRC_PATH}
 
-CMD ["run", "--allow-net", "${SRC_PATH}/cli.ts"]
+RUN deno cache "main.ts"
+
+CMD ["run", "--allow-env", "--allow-net", "--allow-read", "main.ts"]
