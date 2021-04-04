@@ -1,0 +1,4 @@
+[
+  {"method": "GET", "path": "/echo/:message", "queueName": "echo"},
+  {"method": "POST", "path": "/echo/:message", "queueName": "echo"}
+]

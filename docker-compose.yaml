@@ -1,0 +1,50 @@
+version: "3.7"
+services:
+  rest2mq:
+    container_name: rest2mq
+    restart: always
+    build: .
+    ports:
+      - 9080:9080
+    depends_on:
+      - rabbitmq
+    env_file: .env
+    environment:
+      MQ_HOST: rabbitmq
+      MQ_PORT: 5672
+    networks:
+      - mq-services-net
+
+  mqecho:
+    container_name: mqecho
+    restart: always
+    build:
+      context: .
+      dockerfile: backends/mq-echo/Dockerfile
+      args:
+        SRC_PATH: backends/mq-echo
+    depends_on:
+      - rabbitmq
+    env_file: .env
+    environment:
+      MQ_HOST: rabbitmq
+      MQ_PORT: 5672
+    networks:
+      - mq-services-net
+
+
+  rabbitmq:
+    container_name: rabbitmq
+    restart: always
+    image: rabbitmq:3-management-alpine
+    ports:
+      - 5672:5672
+      - 15672:15672
+    # volumes:
+    #   - ./data:/data/db
+    env_file: .env
+    networks:
+      - mq-services-net
+
+networks:
+  mq-services-net:

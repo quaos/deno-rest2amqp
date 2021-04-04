@@ -1,0 +1,65 @@
+{
+    "$schema": "https://deno.land/x/denon@2.4.0/schema.json",
+    "watch": false,
+    "watcher": {
+        "interval": 300,
+        "match": ["*.*", "conf/**/*.*", "src/**/*.*", "backends/**/*.ts"],
+        "skip": [],
+        "legacy": false
+    },
+    "scripts": {
+        "start": [
+            {
+                "cmd": "deno run cli.ts",
+                "desc": "run app server",
+                "allow": [
+                    "env",
+                    "net",
+                    "read"
+                ],
+                "watch": true,
+                "unstable": true
+            }
+        ],
+        "debug": [
+            {
+                "cmd": "deno run --inspect-brk cli.ts",
+                "desc": "run app server",
+                "allow": [
+                    "env",
+                    "net",
+                    "read"
+                ],
+                "watch": true,
+                "unstable": true
+            }
+        ],
+        "cache": "deno cache src/deps/*.ts",
+        "echo:start": [
+            {
+                "cmd": "deno run backends/mq-echo/main.ts",
+                "desc": "run mq-echo, the sample backend service",
+                "allow": [
+                    "env",
+                    "net",
+                    "read"
+                ],
+                "watch": true,
+                "unstable": true
+            }
+        ],
+        "echo:debug": [
+            {
+                "cmd": "deno run --inspect-brk backends/mq-echo/main.ts",
+                "desc": "run mq-echo, the sample backend service",
+                "allow": [
+                    "env",
+                    "net",
+                    "read"
+                ],
+                "watch": true,
+                "unstable": true
+            }
+        ]
+    }
+  }

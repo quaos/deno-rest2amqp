@@ -1,0 +1,20 @@
+node_modules
+.vscode/**/*
+!.vscode/settings.json
+
+frontend/public/assets/js/client.bundle.js
+
+*.log
+**/*.log
+.env
+*.env
+**/*.env
+*.SECRET
+**/*.SECRET
+
+# macOS
+.DS_Store
+**/.DS_Store
+._*
+**/._*
+
