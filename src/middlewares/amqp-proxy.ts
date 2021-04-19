@@ -7,7 +7,7 @@ import { RestResponseMessage } from "../models/RestResponseMessage.ts";
 import { ServiceConfig } from "../models/ServiceConfig.ts";
 import { ErrorFormatter } from "./error-handler.ts";
 import { getConnectOptions } from "../utils/amqp-helper.ts";
-import { merge } from "../utils/utils.ts";
+import { merge, setProperty } from "../utils/utils.ts";
 
 export interface AmqpProxyMiddlewareOptions {
     mqConfig: MqConfig;
@@ -16,7 +16,7 @@ export interface AmqpProxyMiddlewareOptions {
 
 export function createAmqpProxy<
     T extends RouterMiddleware | Middleware = Middleware,
->(opts: AmqpProxyMiddlewareOptions): T {
+    >(opts: AmqpProxyMiddlewareOptions): T {
     const connectOpts = getConnectOptions(opts.mqConfig);
     const serverUri = `${opts.mqConfig.host}:${opts.mqConfig.port}/${opts.mqConfig.vhost}`;
     const exchange = opts.serviceConfig.exchangeName ?? opts.mqConfig.exchangeName;
@@ -25,22 +25,35 @@ export function createAmqpProxy<
     const middleware: RouterMiddleware = async (ctx, next) => {
         // Workaround for Oak setting initial status of responses to 404
         // const expectingNotFound = (ctx.response.status === Status.NotFound);
-        
-        const params: Record<string, string> = {};
-        const reqBody = await ctx.request.body().value as any;
-        (reqBody) && merge(params, reqBody);
-        (ctx.params) && merge(params, ctx.params);
-        const requestUid = generateRequestUid();
-        ctx.state.lastRequestUid = requestUid;
 
-        const reqMessage: RestRequestMessage<typeof params> = {
-            method: opts.serviceConfig.method,
-            endpoint: ctx.request.url.pathname,
-            requestUid,
-            params,
-        };
+        const reqPayload: Record<string, string> = {};
+        try {
+            const reqBody = await ctx.request.body().value;
+            (reqBody) && merge(reqPayload, reqBody);
+            (ctx.params) && merge(reqPayload, ctx.params);
+            const queryParams = ctx.request.url.searchParams;
+            if (queryParams) {
+                for (const [key, val] of queryParams.entries()) {
+                    // TODO: Use lodash or some other library?
+                    setProperty(reqPayload, key, val);
+                }
+            }
+            const requestUid = generateRequestUid();
+            ctx.state.lastRequestUid = requestUid;
 
-        await relayMessageToQueue(ctx, reqMessage);
+            const reqMessage: RestRequestMessage<typeof reqPayload> = {
+                method: opts.serviceConfig.method,
+                endpoint: ctx.request.url.pathname,
+                requestUid,
+                payload: reqPayload,
+            };
+
+            await relayMessageToQueue(ctx, reqMessage);
+        } catch (err) {
+            console.error(err);
+            ctx.state.lastError = err;
+            await next();
+        }
 
         //TEST
         console.log("awaits ended; response status:", ctx.response.status);
@@ -70,11 +83,13 @@ export function createAmqpProxy<
                 await channel.declareExchange({ exchange });
             }
 
-            await channel.declareQueue({ queue });
-            
+            const durable = opts.serviceConfig.isDurableQueue ?? true;
+            await channel.declareQueue({ queue, durable });
+
             const timeout = opts.mqConfig.timeout;
             reqTimerId = (timeout)
                 ? setTimeout(() => {
+                    reqTimerId = undefined;
                     const err = new Error(`Request timed out after: ${timeout} msecs`);
                     sendGatewayError(reqMessage.requestUid, err, ctx, Status.GatewayTimeout);
                 }, timeout)
@@ -118,19 +133,19 @@ export function createAmqpProxy<
                     },
                     onReplyMessage
                 )
-                .then((result) => {
-                    replyConsumeResult = result;
-                    channel!.publish(
-                        { exchange, routingKey: queue },
-                        {
-                            contentType: "application/json",
-                            correlationId: requestUid,
-                            replyTo: opts.mqConfig.replyToQueue,
-                        },
-                        new TextEncoder().encode(JSON.stringify(reqMessage)),
-                    );
-                })
-                .catch(reject);
+                    .then((result) => {
+                        replyConsumeResult = result;
+                        channel!.publish(
+                            { exchange, routingKey: queue },
+                            {
+                                contentType: "application/json",
+                                correlationId: requestUid,
+                                replyTo: opts.mqConfig.replyToQueue,
+                            },
+                            new TextEncoder().encode(JSON.stringify(reqMessage)),
+                        );
+                    })
+                    .catch(reject);
             });
         } catch (err) {
             console.error(err);
@@ -148,14 +163,14 @@ export function createAmqpProxy<
             }
         }
     };
-    
+
     return middleware as T
 }
 
 // TODO:
 export function createProxyErrorFormatter(): ErrorFormatter {
     return (err: Error) => {
-        return <RestResponseMessage<any>> {
+        return <RestResponseMessage<any>>{
             requestUid: "",
             error: err.message,
         }

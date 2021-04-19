@@ -5,4 +5,5 @@ export interface ServiceConfig {
   path: string;
   exchangeName?: string;
   queueName?: string;
+  isDurableQueue?: boolean;
 }
