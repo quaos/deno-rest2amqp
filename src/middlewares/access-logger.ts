@@ -1,4 +1,7 @@
 import { Middleware, RouterMiddleware } from "../deps/oak.ts";
+import { log } from "../deps/std.ts";
+
+import { getLogger } from "../utils/logging.ts";
 
 export interface AccessLoggerOptions {
     format?: string;
@@ -6,17 +9,16 @@ export interface AccessLoggerOptions {
 
 export function accessLogger<
     T extends RouterMiddleware | Middleware = Middleware,
->(opts?: AccessLoggerOptions): T {
+    >(opts?: AccessLoggerOptions): T {
+    const logger = getLogger("access-logger");
+
     //TODO: Add format support
     const middleware: Middleware = async (ctx, next) => {
         let t1 = Date.now();
 
-        //TEST
-        console.log("Initial response status:", ctx.response.status);
-
         await next();
         let dt = Date.now() - t1;
-        console.log(`${ctx.request.method} ${ctx.request.url} => ${ctx.response.status} (${dt} msecs)`);
+        logger.info(`${ctx.request.method} ${ctx.request.url} => ${ctx.response.status} (${dt} msecs)`);
     };
     return middleware as T;
 }

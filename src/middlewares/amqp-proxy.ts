@@ -1,4 +1,5 @@
 import { Middleware, RouterMiddleware, Context, Status, RouterContext } from "../deps/oak.ts";
+import { log } from "../deps/std.ts";
 
 import { MqConfig } from "../app-config.ts";
 import { connect, AmqpChannel, BasicConsumeOk } from "../deps/amqp.ts";
@@ -7,6 +8,8 @@ import { RestResponseMessage } from "../models/RestResponseMessage.ts";
 import { ServiceConfig } from "../models/ServiceConfig.ts";
 import { ErrorFormatter } from "./error-handler.ts";
 import { getConnectOptions } from "../utils/amqp-helper.ts";
+import { getLogger } from "../utils/logging.ts";
+import { Timer } from "../utils/timer.ts";
 import { merge, setProperty } from "../utils/utils.ts";
 
 export interface AmqpProxyMiddlewareOptions {
@@ -21,12 +24,14 @@ export function createAmqpProxy<
     const serverUri = `${opts.mqConfig.host}:${opts.mqConfig.port}/${opts.mqConfig.vhost}`;
     const exchange = opts.serviceConfig.exchangeName ?? opts.mqConfig.exchangeName;
     const queue = opts.serviceConfig.queueName ?? opts.mqConfig.queueName;
+    const logger = getLogger("amqp-proxy");
 
     const middleware: RouterMiddleware = async (ctx, next) => {
         // Workaround for Oak setting initial status of responses to 404
         // const expectingNotFound = (ctx.response.status === Status.NotFound);
 
         const reqPayload: Record<string, string> = {};
+        const reqTimer = new Timer();
         try {
             const reqBody = await ctx.request.body().value;
             (reqBody) && merge(reqPayload, reqBody);
@@ -48,33 +53,50 @@ export function createAmqpProxy<
                 payload: reqPayload,
             };
 
-            await relayMessageToQueue(ctx, reqMessage);
+            const timeout = opts.mqConfig.timeout;
+            if (timeout) {
+                await reqTimer.start(
+                    timeout,
+                    () => {
+                        const err = new Error(`Request timed out after: ${timeout} msecs`);
+                        logger.warning(err.message);
+                        sendGatewayError(reqMessage.requestUid, err, ctx, Status.GatewayTimeout);
+                        throw err;
+                    },
+                    () => relayMessageToQueue(ctx, reqMessage, reqTimer),
+                );
+            } else {
+                await relayMessageToQueue(ctx, reqMessage);
+            }
         } catch (err) {
-            console.error(err);
             ctx.state.lastError = err;
+            if ((!reqTimer.isTimedOut()) && (!ctx.state.errorLogged)) {
+                logger.error(err);
+                ctx.state.errorLogged = true;
+            }
             await next();
         }
 
         //TEST
-        console.log("awaits ended; response status:", ctx.response.status);
+        // log.debug("awaits ended; response status:", ctx.response.status);
     };
 
     const relayMessageToQueue = async (
         ctx: RouterContext,
         reqMessage: RestRequestMessage<any>,
+        reqTimer?: Timer,
     ) => {
         const requestUid = reqMessage.requestUid;
 
         let channel: AmqpChannel | undefined = undefined;
-        let reqTimerId: number | undefined = undefined;
         let replyConsumeResult: BasicConsumeOk | undefined = undefined;
         try {
-            console.log(
+            logger.info(
                 "Sending request to MQ server:", serverUri,
                 "; exchange:", exchange,
-                "; queue: ", queue,
-                "; message:", reqMessage
+                "; queue:", queue
             );
+            logger.debug("Sending request message:", reqMessage);
 
             const connection = await connect(connectOpts);
             channel = await connection.openChannel();
@@ -86,33 +108,23 @@ export function createAmqpProxy<
             const durable = opts.serviceConfig.isDurableQueue ?? true;
             await channel.declareQueue({ queue, durable });
 
-            const timeout = opts.mqConfig.timeout;
-            reqTimerId = (timeout)
-                ? setTimeout(() => {
-                    reqTimerId = undefined;
-                    const err = new Error(`Request timed out after: ${timeout} msecs`);
-                    sendGatewayError(reqMessage.requestUid, err, ctx, Status.GatewayTimeout);
-                }, timeout)
-                : undefined;
-
             return await new Promise((resolve, reject) => {
                 const onReplyMessage = async (args: any, props: any, data: Uint8Array) => {
                     try {
-                        (reqTimerId) && clearTimeout(reqTimerId);
-                        reqTimerId = undefined;
+                        (reqTimer) && reqTimer.stop();
 
-                        console.log("Got reply: args:", args, "; props:", props);
+                        logger.debug("Got reply: args:", args, "; props:", props);
                         const dataStr = new TextDecoder().decode(data);
-                        console.log("Received response data:", dataStr);
+                        logger.debug("Received response data:", dataStr);
 
                         if (ctx.response.status === Status.NotFound) { // && (expectingNotFound))
                             // Ignore
                         } else if (ctx.response.status >= 300) {
-                            console.warn("Request already ended with status:", ctx.response.status);
+                            logger.warning("Request already ended with status:", ctx.response.status);
                             return resolve(undefined);
                         }
                         if (ctx.state.lastError) {
-                            console.warn("Request already failed with error:", ctx.state.lastError);
+                            logger.warning("Request already failed with error:", ctx.state.lastError);
                             return resolve(undefined);
                         }
                         const respMessage: RestResponseMessage<any> = JSON.parse(dataStr);
@@ -121,7 +133,7 @@ export function createAmqpProxy<
                         ctx.response.body = respMessage;
                         resolve(respMessage);
                     } catch (err) {
-                        console.error(err);
+                        logger.error(err);
                         reject(err);
                     }
                 };
@@ -148,9 +160,11 @@ export function createAmqpProxy<
                     .catch(reject);
             });
         } catch (err) {
-            console.error(err);
-            (reqTimerId) && clearTimeout(reqTimerId);
-            reqTimerId = undefined;
+            if (!ctx.state.errorLogged) {
+                logger.error(err);
+                ctx.state.errorLogged = true;
+            }
+            (reqTimer) && reqTimer.stop();
             sendGatewayError(requestUid, err, ctx);
             if (channel) {
                 try {
@@ -158,11 +172,29 @@ export function createAmqpProxy<
                         && channel.cancel({ consumerTag: replyConsumeResult!.consumerTag });
                     await channel.close();
                 } catch (err2) {
-                    console.error("Error cleaning up AMQP channel:", err2);
+                    logger.error("Error cleaning up AMQP channel:", err2);
                 }
             }
         }
     };
+
+    function sendGatewayError(
+        requestUid: string,
+        err: Error | string,
+        ctx: Context<Record<string, any>>,
+        status?: number,
+    ) {
+        try {
+            ctx.response.status = status || Status.BadGateway;
+            const errRespBody: RestResponseMessage<any> = {
+                requestUid,
+                error: (typeof err === "string") ? err : (err.message ?? `${err}`),
+            };
+            ctx.response.body = errRespBody;
+        } catch (err2) {
+            logger.error("Failed sending error response:", err2);
+        }
+    }
 
     return middleware as T
 }
@@ -182,22 +214,4 @@ function generateRequestUid(): string {
     const x = Math.floor(Math.random() * 1000000);
 
     return `${t}_${x}`
-}
-
-function sendGatewayError(
-    requestUid: string,
-    err: Error | string,
-    ctx: Context<Record<string, any>>,
-    status?: number,
-) {
-    try {
-        ctx.response.status = status || Status.BadGateway;
-        const errRespBody: RestResponseMessage<any> = {
-            requestUid,
-            error: (typeof err === "string") ? err : (err.message ?? `${err}`),
-        };
-        ctx.response.body = errRespBody;
-    } catch (err) {
-        console.error("Failed sending error response:", err);
-    }
 }

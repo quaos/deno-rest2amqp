@@ -1,14 +1,14 @@
 {
-  "name": "deno-react-minimal-frontend",
-  "version": "1.2.0",
-  "description": "Deno+React Frontend, minimal setup",
+  "name": "deno-rest2amqp",
+  "version": "1.0.0",
+  "description": "REST-to-AMQP API Gateway example on Deno",
   "author": {
     "name": "Chakrit W.",
     "email": "quaos.qrz@gmail.com",
     "url": "https://github.com/quaos/"
   },
   "repository": {
-    "github": "https://github.com/quaos/deno-react-minimal-frontend"
+    "github": "https://github.com/quaos/deno-rest2amqp"
   },
   "scripts": {
     "start": "deno run --allow-env --allow-net --allow-read cli.ts",
@@ -19,9 +19,7 @@
     "echo:dev": "denon echo:start",
     "echo:debug": "denon echo:debug"
   },
-  "dependencies": {
-  },
-  "devDependencies": {
-  },
+  "dependencies": {},
+  "devDependencies": {},
   "private": true
 }

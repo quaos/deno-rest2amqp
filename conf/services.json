@@ -8,15 +8,5 @@
     "method": "POST",
     "path": "/echo/:message",
     "queueName": "echo"
-  },
-  {
-    "method": "GET",
-    "path": "/cities/:id",
-    "queueName": "cities"
-  },
-  {
-    "method": "GET",
-    "path": "/cities/",
-    "queueName": "cities"
   }
 ]

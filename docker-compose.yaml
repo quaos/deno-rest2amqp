@@ -6,6 +6,8 @@ services:
     build: .
     ports:
       - 9080:9080
+    volumes:
+      - /app/conf/services
     depends_on:
       - rabbitmq
     env_file: .env

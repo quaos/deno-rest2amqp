@@ -19,6 +19,7 @@ try {
   console.log("Starting example MQ backend service: echo; with config:", config);
   const exchange = config.exchangeName;
   const queue = QUEUE_NAME;
+  const queueDurable = true;
 
   const connectOpts = getConnectOptions(config);
   console.log("Connect options:", connectOpts);
@@ -27,14 +28,14 @@ try {
 
   console.log("Connected to MQ server, opening channel");
   const channel = await connection.openChannel();
-  
+
   if (exchange) {
     console.log("Declaring exchange:", exchange);
     await channel.declareExchange({ exchange });
   }
 
   console.log("Declaring queue:", queue);
-  await channel.declareQueue({ queue });
+  await channel.declareQueue({ queue, durable: queueDurable });
 
   const onIncomingMessage = async (args: any, props: any, data: Uint8Array) => {
     try {
@@ -58,7 +59,7 @@ try {
       const echoResp: RestResponseMessage<EchoMessage> = {
         requestUid: echoReq.requestUid,
         payload: {
-          message: echoReq.params.message,
+          message: echoReq.payload.message,
         }
       };
 

@@ -3,7 +3,12 @@
     "watch": false,
     "watcher": {
         "interval": 300,
-        "match": ["*.*", "conf/**/*.*", "src/**/*.*", "backends/**/*.ts"],
+        "match": [
+            "*.*",
+            "conf/**/*.*",
+            "src/**/*.*",
+            "backends/**/*.ts"
+        ],
         "skip": [],
         "legacy": false
     },
@@ -62,4 +67,4 @@
             }
         ]
     }
-  }
+}

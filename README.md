@@ -25,9 +25,9 @@ set PATH=%PATH%;%HOME%\.deno\bin
 * ***MQ_PORT:*** (default: `5672`)
 * ***MQ_USER:***
 * ***MQ_PASSWORD:***
-* ***MQ_VHOST:*** (default: ``)
-* ***MQ_EXCHANGE:*** (default: ``)
-* ***MQ_QUEUE:*** (default: ``)
+* ***MQ_VHOST:*** (default: '')
+* ***MQ_EXCHANGE:*** (default: '')
+* ***MQ_QUEUE:*** (default: '')
 * ***MQ_TIMEOUT:*** (default: `30000`) (millisecs)
 
 
@@ -39,7 +39,7 @@ docker-compose up -d
 ```
 
 ***Running API Gateway/Proxy***
-```
+```shell
 yarn start
 
 # or:
@@ -53,7 +53,7 @@ denon debug
 ```
 
 ***Running mq-echo, the sample backend service***
-```
+```shell
 yarn echo:start
 
 # or:
@@ -66,8 +66,16 @@ denon echo:start
 denon echo:debug
 ```
 
+***Adding more backend service***
+```shell
+# use the same format as conf/services.json
+cp my-mq-services.json conf/services/
+
+# restart
+```
+
 ### Testing Operations
 
-```
+```shell
 curl -s -X POST http://localhost:9080/echo/hi
 ```

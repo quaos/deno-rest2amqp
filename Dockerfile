@@ -4,6 +4,8 @@ EXPOSE 9080
 
 WORKDIR /app
 
+VOLUME ["/app/conf/services"]
+
 USER deno
 
 COPY src/deps src/deps
