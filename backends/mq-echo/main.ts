@@ -56,8 +56,20 @@ try {
 
       await channel.declareQueue({ queue: replyTo });
 
+      const echoRespHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      Object.entries(echoReq.headers).forEach(([key, val]) => {
+        const lKey = key.toLowerCase();
+        if ((lKey === "authorization") || (lKey === "content-type")) {
+          return;
+        }
+        echoRespHeaders[key] = val;
+      });
+
       const echoResp: RestResponseMessage<EchoMessage> = {
         requestUid: echoReq.requestUid,
+        headers: echoRespHeaders,
         payload: {
           message: echoReq.payload.message,
         }

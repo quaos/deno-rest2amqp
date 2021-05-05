@@ -6,7 +6,7 @@ import { LoggingConfigFactory } from "./utils/logging.ts";
 export class AppConfig {
     appName: string = "deno-rest2amqp";
     appVersion: string = "1.0.0";
-    appFrontOrigin: string = "http://localhost:3000";
+    appFrontOrigin: string = "*";
     host: string = "0.0.0.0";
     port: number = 9080;
     servicesFile: string = "conf/services.json";

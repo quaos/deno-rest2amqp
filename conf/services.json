@@ -2,11 +2,22 @@
   {
     "method": "GET",
     "path": "/echo/:message",
-    "queueName": "echo"
+    "queueName": "echo",
+    "allowedHeaders": [
+      "Accept",
+      "Authorization",
+      "User-Agent"
+    ]
   },
   {
     "method": "POST",
     "path": "/echo/:message",
-    "queueName": "echo"
+    "queueName": "echo",
+    "allowedHeaders": [
+      "Accept",
+      "Authorization",
+      "Content-Type",
+      "User-Agent"
+    ]
   }
 ]

@@ -15,12 +15,12 @@ set PATH=%PATH%;%HOME%\.deno\bin
 
 * Needs [denon](https://github.com/denosaurs/denon) for debugging/live reloading
 
-### Environment vars
+### Environment Vars
 
 * ***APP_ENV:*** (dev|production)
 * ***APP_HOST:*** (default: `0.0.0.0`)
 * ***APP_PORT:*** (default: `9080`)
-* ***APP_FRONT_ORIGIN:*** Origin for CORS (default: `http://localhost:3000`)
+* ***APP_FRONT_ORIGIN:*** Origin for CORS (default: `*`)
 * ***MQ_HOST:*** (default: `0.0.0.0`)
 * ***MQ_PORT:*** (default: `5672`)
 * ***MQ_USER:***
@@ -30,6 +30,56 @@ set PATH=%PATH%;%HOME%\.deno\bin
 * ***MQ_QUEUE:*** (default: '')
 * ***MQ_TIMEOUT:*** (default: `30000`) (millisecs)
 
+## Backend Services Config Format
+
+```typescript
+// See: src/models/ServiceConfig.ts
+// each config JSON file is parsed as ServiceConfig[]
+
+export interface ServiceConfig {
+  method: HttpMethod;
+  path: string;
+  allowedHeaders?: string[];
+  exchangeName?: string;
+  queueName?: string;
+  isDurableQueue?: boolean;
+}
+```
+
+## Outgoing Request Message Format
+
+```typescript
+// See: src/models/RestRequestMessage.ts
+import { HttpMethod } from "./HttpMethod.ts";
+
+export interface RestRequestMessage<T> {
+    requestUid: string;
+    method: HttpMethod;
+    endpoint: string;
+    headers: Record<string, string>;
+    payload: T;
+}
+
+// See: src/models/HttpMethod.ts
+export enum HttpMethod {
+  Get = "GET",
+  Post = "POST",
+  Put = "PUT",
+  Delete = "DELETE"
+}
+```
+
+## Accepted Response Message Format
+
+```typescript
+// See: src/models/RestResponseMessage.ts
+export interface RestResponseMessage<T> {
+    requestUid: string;
+    headers?: Record<string, string>;
+    payload?: T;
+    error?: string;
+}
+```
 
 ### Running
 
@@ -77,5 +127,7 @@ cp my-mq-services.json conf/services/
 ### Testing Operations
 
 ```shell
-curl -s -X POST http://localhost:9080/echo/hi
+curl -s -X POST \
+    -H"Authorization: Bearer xxxx" \
+    http://localhost:9080/echo/hi
 ```

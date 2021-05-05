@@ -21,7 +21,9 @@ export function createAmqpProxy<
     T extends RouterMiddleware | Middleware = Middleware,
     >(opts: AmqpProxyMiddlewareOptions): T {
     const connectOpts = getConnectOptions(opts.mqConfig);
-    const serverUri = `${opts.mqConfig.host}:${opts.mqConfig.port}/${opts.mqConfig.vhost}`;
+    const vhost = opts.mqConfig.vhost || "";
+    const serverUri = `${opts.mqConfig.host}:${opts.mqConfig.port}/${vhost}`;
+    const allowedHeaders = opts.serviceConfig.allowedHeaders ?? [];
     const exchange = opts.serviceConfig.exchangeName ?? opts.mqConfig.exchangeName;
     const queue = opts.serviceConfig.queueName ?? opts.mqConfig.queueName;
     const logger = getLogger("amqp-proxy");
@@ -46,10 +48,18 @@ export function createAmqpProxy<
             const requestUid = generateRequestUid();
             ctx.state.lastRequestUid = requestUid;
 
+            const reqHeaders: Record<string, string> = {};
+            ctx.request.headers.forEach((val, key, _parent) => {
+                if (allowedHeaders.find((h) => h.toLowerCase() === key)) {
+                    reqHeaders[key] = val;
+                }
+            });
+
             const reqMessage: RestRequestMessage<typeof reqPayload> = {
                 method: opts.serviceConfig.method,
                 endpoint: ctx.request.url.pathname,
                 requestUid,
+                headers: reqHeaders,
                 payload: reqPayload,
             };
 
@@ -130,6 +140,10 @@ export function createAmqpProxy<
                         const respMessage: RestResponseMessage<any> = JSON.parse(dataStr);
 
                         ctx.response.status = Status.OK;
+                        (respMessage.headers) && Object.entries(respMessage.headers).forEach(([key, val]) => {
+                            ctx.response.headers.append(key, val);
+                        });
+
                         ctx.response.body = respMessage;
                         resolve(respMessage);
                     } catch (err) {
