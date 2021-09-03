@@ -13,6 +13,10 @@ try {
   // log.debug("Env:", Deno.env.toObject());
   // log.debug("App Config:", appConfig);
 
+  const bannerFilePath = `${Deno.cwd()}/banner.txt`;
+  const banner = await Deno.readTextFile(bannerFilePath);
+  appConfig.banner = banner;
+
   let server = new Server(appConfig);
 
   rc = await server.start();

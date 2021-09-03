@@ -1,6 +1,6 @@
 {
   "name": "deno-rest2amqp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "REST-to-AMQP API Gateway example on Deno",
   "author": {
     "name": "Chakrit W.",
@@ -11,11 +11,11 @@
     "github": "https://github.com/quaos/deno-rest2amqp"
   },
   "scripts": {
-    "start": "deno run --allow-env --allow-net --allow-read cli.ts",
+    "start": "deno run --allow-env --allow-net --allow-read --config tsconfig.json cli.ts",
     "dev": "denon start",
     "debug": "denon debug",
     "cache": "deno cache src/deps/*.ts",
-    "echo:start": "deno run --allow-env --allow-net --allow-read backends/mq-echo/main.ts",
+    "echo:start": "deno run --allow-env --allow-net --allow-read --config tsconfig.json backends/mq-echo/main.ts",
     "echo:dev": "denon echo:start",
     "echo:debug": "denon echo:debug"
   },

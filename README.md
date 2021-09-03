@@ -2,7 +2,7 @@
 
 ## Requirements
 
-* Deno version: ^1.8.0
+* Deno version: ^1.13.2
 * Adds `~/.deno/bin` path to your system or user's `PATH` environment variable
 
 ```shell
@@ -31,6 +31,10 @@ set PATH=%PATH%;%HOME%\.deno\bin
 * ***MQ_TIMEOUT:*** (default: `30000`) (millisecs)
 
 ## Backend Services Config Format
+
+* Built-in/example services config is in `conf/services.json`
+
+* Additional services config files can be added to: `conf/services.d/` (Docker volume)
 
 ```typescript
 // See: src/models/ServiceConfig.ts

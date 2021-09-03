@@ -3,11 +3,14 @@ services:
   rest2mq:
     container_name: rest2mq
     restart: always
-    build: .
+    build:
+      context: .
+      args:
+        APP_PORT: 9080
     ports:
       - 9080:9080
     volumes:
-      - /app/conf/services
+      - ./temp/services.d:/app/conf/services.d
     depends_on:
       - rabbitmq
     env_file: .env

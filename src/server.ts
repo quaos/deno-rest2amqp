@@ -29,6 +29,9 @@ export class Server {
     }
 
     public async start(): Promise<number> {
+        if (this.appConfig.banner) {
+            this.appConfig.banner.split("\n").forEach((line) => console.info(line));
+        }
         this.logger.info(`Starting server on host: ${this.appConfig.host}; port: ${this.appConfig.port}`);
         // this.logger.debug("App Config:", this.appConfig);
 
@@ -57,6 +60,7 @@ export class Server {
         const servicesConf = JSON.parse(servicesStr) || [];
 
         if (this.appConfig.extServicesDir) {
+            this.logger.debug("Searching Ext. Services Config files in path:", this.appConfig.extServicesDir);
             for await (const dirEntry of Deno.readDir(this.appConfig.extServicesDir)) {
                 if (!dirEntry.isFile) {
                     continue;

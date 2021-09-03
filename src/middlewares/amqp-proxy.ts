@@ -98,8 +98,8 @@ export function createAmqpProxy<
     ) => {
         const requestUid = reqMessage.requestUid;
 
-        let channel: AmqpChannel | undefined = undefined;
-        let replyConsumeResult: BasicConsumeOk | undefined = undefined;
+        let channel: AmqpChannel | undefined;
+        let replyConsumeResult: BasicConsumeOk | undefined;
         try {
             logger.info(
                 "Sending request to MQ server:", serverUri,
@@ -182,8 +182,9 @@ export function createAmqpProxy<
             sendGatewayError(requestUid, err, ctx);
             if (channel) {
                 try {
-                    (replyConsumeResult)
-                        && channel.cancel({ consumerTag: replyConsumeResult!.consumerTag });
+                    if (replyConsumeResult) {
+                        channel.cancel({ consumerTag: replyConsumeResult.consumerTag });
+                    }
                     await channel.close();
                 } catch (err2) {
                     logger.error("Error cleaning up AMQP channel:", err2);

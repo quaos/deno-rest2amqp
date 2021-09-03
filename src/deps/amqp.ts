@@ -1,4 +1,4 @@
-export { connect } from "https://deno.land/x/amqp@v0.15.0/mod.ts";
+export { connect } from "https://deno.land/x/amqp@v0.17.0/mod.ts";
 
 export type {
   AmqpChannel,
@@ -8,4 +8,4 @@ export type {
   BasicConsumeArgs,
   BasicConsumeOk,
   BasicPublishArgs,
-} from "https://deno.land/x/amqp@v0.15.0/mod.ts";
+} from "https://deno.land/x/amqp@v0.17.0/mod.ts";

@@ -1,0 +1,21 @@
+##########################################################
+
+RESTREST    RESTREST    RESTREST    RESTREST
+RE    REST  RE        REST             RE 
+RESTREST    RESTREST      REST         RE
+RE    RE    RE                REST     RE
+RE     RE   RESTREST    RESTREST       RE
+
+                222222TO>>
+
+  MQMQ    MQ      MQ    QPQPQP      QPQPQP
+MQM  MQM  MQMQ  MQMQ  QP      QP    QP    QP
+MQ    MQ  MQ  MQ  MQ  QP      QP    QP    QP
+MQMQMQMQ  MQ  MQ  MQ  QP  QP  QP    QPQPQP
+MQ    MQ  MQ  MQ  MQ  QP    QPQP    QP
+MQ    MQ  MQ      MQ    QPQPQPQPQP  QP
+
+v1.1.0
+REST-to-AMQP API Gateway Powered by Deno, a JavaScript/Typescript runtime
+Copyright (c) 2021 by Chakrit W. <quaos.qrz@gmail.com>
+##########################################################

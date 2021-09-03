@@ -5,14 +5,15 @@ import { LoggingConfigFactory } from "./utils/logging.ts";
 
 export class AppConfig {
     appName: string = "deno-rest2amqp";
-    appVersion: string = "1.0.0";
+    appVersion: string = "1.1.0";
     appFrontOrigin: string = "*";
     host: string = "0.0.0.0";
     port: number = 9080;
     servicesFile: string = "conf/services.json";
-    extServicesDir?: string = "conf/services";
+    extServicesDir?: string = "conf/services.d";
     mq: MqConfig = new MqConfig();
     logging?: log.LogConfig;
+    banner?: string;
 
     public constructor(attrs?: Partial<AppConfig>) {
         (attrs) && merge(this, attrs);
